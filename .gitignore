@@ -1,0 +1,64 @@
+# ========================
+# Operating System files
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ========================
+# Node / Electron
+# ========================
+node_modules/
+dist/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+*.tgz
+
+# ========================
+# Python
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env/
+venv/
+venv/
+*.sqlite3
+*.db
+*.db-journal
+
+# ========================
+# MongoDB
+# ========================
+*.lock
+*.log
+dump/
+data/
+
+# ========================
+# IDEs and Editors
+# ========================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ========================
+# OS/User system files
+# ========================
+*.bak
+*.tmp
+*.swp
+*.swo
+*.log
+*.DS_Store
+Thumbs.db
+*.lnk
