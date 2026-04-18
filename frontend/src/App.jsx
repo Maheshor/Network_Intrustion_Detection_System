@@ -4,7 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import RealTimeScan from "./pages/RealTimeScan";
-import ManualCheck from "./pages/ManualCheck";
+import ManualCheck from "./pages/ManualCheck.jsx";
 import Logs from "./pages/Logs";
 import Profile from "./pages/Profile";
 

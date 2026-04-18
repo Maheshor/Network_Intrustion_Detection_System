@@ -1,40 +1,38 @@
-from preprocess import load_and_preprocess
-import pandas as pd
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.utils import resample
 import joblib
+from preprocess import load_and_preprocess
+from sklearn.neighbors import KNeighborsClassifier
+from imblearn.over_sampling import SMOTE
+import os
 
-print("🔹 Loading training data...")
-X, y = load_and_preprocess("data/KDDTrain.parquet", is_train=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model", "knn_model.pkl")
 
-# ---------------- BALANCING ----------------
-X["label"] = y
 
-normal = X[X["label"] == 0]
-attack = X[X["label"] == 1]
+print("KNN TRAINING WITH SMOTE")
 
-normal_downsampled = resample(
-    normal,
-    replace=False,
-    n_samples=len(attack),
-    random_state=42
+
+# Load data
+X_train, y_train = load_and_preprocess(
+    "data/KDDTrain.parquet",
+    is_train=True
 )
 
-balanced = pd.concat([normal_downsampled, attack])
-balanced = balanced.sample(frac=1, random_state=42)
 
-y_balanced = balanced["label"]
-X_balanced = balanced.drop(columns=["label"])
+print("Applying SMOTE...")
+smote = SMOTE(random_state=42)
+X_train, y_train = smote.fit_resample(X_train, y_train)
 
-print("Balanced class counts:")
-print(y_balanced.value_counts())
 
-# ---------------- TRAIN MODEL ----------------
-print("🔹 Training KNN model (k=3)...")
+model = KNeighborsClassifier(
+    n_neighbors=9,
+    weights="distance",
+    metric="manhattan",
+    n_jobs=-1
+)
 
-knn = KNeighborsClassifier(n_neighbors=3)
-knn.fit(X_balanced, y_balanced)
+print("🔹 Training model...")
+model.fit(X_train, y_train)
 
-joblib.dump(knn, "model/knn_model.pkl")
+joblib.dump(model, MODEL_PATH)
 
-print("✅ KNN model trained and saved successfully")
+print(" Model saved at:", MODEL_PATH)

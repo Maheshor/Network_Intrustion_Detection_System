@@ -6,7 +6,8 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(BASE_DIR, "model", "knn_model.pkl")
+MODEL_PATH = os.path.join(BASE_DIR, "model", "knn_tuned.pkl")
+ENCODER_PATH = os.path.join(BASE_DIR, "model", "encoders.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "model", "scaler.pkl")
 
 FEATURES = [
@@ -18,50 +19,52 @@ FEATURES = [
     "dst_bytes"
 ]
 
-def predict_intrusion(input_data):
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
+# Load once
+model = joblib.load(MODEL_PATH)
+encoders = joblib.load(ENCODER_PATH)
+scaler = joblib.load(SCALER_PATH)
 
-    df = pd.DataFrame([input_data], columns=FEATURES)
+def preprocess_live(data):
 
-    # Encode categorical values manually (SAME AS TRAINING)
-    categorical_map = {
-        "protocol_type": {"tcp": 0, "udp": 1, "icmp": 2},
-        "service": {"http": 0, "ftp": 1, "smtp": 2, "other": 3},
-        "flag": {"SF": 0, "S0": 1, "REJ": 2, "RSTO": 3}
-    }
+    df = pd.DataFrame([data])
 
-    for col, mapping in categorical_map.items():
-        df[col] = df[col].map(mapping).fillna(0)
+    # Encode categorical
+    for col in ["protocol_type","service","flag"]:
+        le = encoders[col]
+        df[col] = df[col].map(
+            lambda v: le.transform([str(v)])[0]
+            if str(v) in le.classes_ else -1
+        )
 
-    df[["duration", "src_bytes", "dst_bytes"]] = scaler.transform(
-        df[["duration", "src_bytes", "dst_bytes"]]
+    # Scale all features
+    df = pd.DataFrame(
+        scaler.transform(df[FEATURES]),
+        columns=FEATURES
     )
 
-    prediction = model.predict(df)[0]
-    return "Intrusion Detected" if prediction == 1 else "Normal Traffic"
+    return df
 
+def predict_intrusion(input_data):
 
-# =========================
-# ENTRY POINT
-# =========================
+    X = preprocess_live(input_data)
+
+    pred = model.predict(X)[0]
+
+    return {
+        "prediction": int(pred),
+        "label": "Intrusion Detected" if pred == 1 else "Normal Traffic"
+    }
+
+# ================= ENTRY =================
 if __name__ == "__main__":
 
-    # 🔹 API MODE
-    if len(sys.argv) > 1:
-        input_json = json.loads(sys.argv[1])
+    try:
+        # Read JSON from stdin
+        input_json = json.loads(sys.stdin.read())
         result = predict_intrusion(input_json)
-        print(result)
+        print(json.dumps(result))
 
-    # 🔹 TEST MODE (NO ARGUMENT)
-    else:
-        test_sample = {
-            "duration": 0,
-            "protocol_type": "tcp",
-            "service": "http",
-            "flag": "SF",
-            "src_bytes": 181,
-            "dst_bytes": 5450
-        }
-
-        print("🔍 Test Prediction:", predict_intrusion(test_sample))
+    except Exception as e:
+        print(json.dumps({
+            "error": str(e)
+        }))
